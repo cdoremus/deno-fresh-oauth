@@ -7,7 +7,6 @@ import {
   setUserSession,
   type User,
 } from "@/utils/db.ts";
-// import { stripe } from "@/utils/payments.ts";
 import { State } from "./_middleware.ts";
 import { getAccessToken, setCallbackHeaders } from "@/utils/deno_kv_oauth.ts";
 import { oauth2Client } from "@/utils/oauth2_client.ts";
@@ -39,14 +38,10 @@ export const handler: Handlers<any, State> = {
 
     const user = await getUserById(githubUser.id.toString());
     if (!user) {
-      // const customer = await stripe.customers.create({
-      //   email: githubUser.email,
-      // });
       const userInit: User | null = {
         id: githubUser.id.toString(),
         login: githubUser.login,
         avatarUrl: githubUser.avatar_url,
-        // stripeCustomerId: customer.id,
         sessionId,
       };
       await createUser(userInit);
