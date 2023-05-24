@@ -3,164 +3,17 @@ import { AssertionError } from "https://deno.land/std@0.186.0/testing/asserts.ts
 
 export const kv = await Deno.openKv();
 
-interface InitItem {
-  userId: string;
-  title: string;
-  url: string;
-}
-
-export interface Item extends InitItem {
-  id: string;
-  createdAt: Date;
-  score: number;
-}
-
-export async function createItem(initItem: InitItem) {
-  let res = { ok: false };
-  while (!res.ok) {
-    const id = crypto.randomUUID();
-    const itemKey = ["items", id];
-    const itemsByUserKey = ["items_by_user", initItem.userId, id];
-    const item: Item = {
-      ...initItem,
-      id,
-      score: 0,
-      createdAt: new Date(),
-    };
-
-    res = await kv.atomic()
-      .check({ key: itemKey, versionstamp: null })
-      .check({ key: itemsByUserKey, versionstamp: null })
-      .set(itemKey, item)
-      .set(itemsByUserKey, item)
-      .commit();
-
-    return item;
-  }
-}
-
-export async function getAllItems(options?: Deno.KvListOptions) {
-  const iter = await kv.list<Item>({ prefix: ["items"] }, options);
-  const items = [];
-  for await (const res of iter) items.push(res.value);
-  return items;
-}
-
-export async function getItemById(id: string) {
-  const res = await kv.get<Item>(["items", id]);
-  return res.value;
-}
-
-export async function getItemByUser(userId: string, itemId: string) {
-  const res = await kv.get<Item>(["items_by_users", userId, itemId]);
-  return res.value;
-}
-
-interface InitComment {
-  userId: string;
-  itemId: string;
-  text: string;
-}
-
-export interface Comment extends InitComment {
-  id: string;
-  createdAt: Date;
-}
-
-export async function createComment(initComment: InitComment) {
-  let res = { ok: false };
-  while (!res.ok) {
-    const id = crypto.randomUUID();
-    const commentsByUserKey = ["comments_by_users", initComment.userId, id];
-    const commentsByItemKey = ["comments_by_item", initComment.itemId, id];
-    const comment: Comment = { ...initComment, id, createdAt: new Date() };
-
-    res = await kv.atomic()
-      .check({ key: commentsByUserKey, versionstamp: null })
-      .check({ key: commentsByItemKey, versionstamp: null })
-      .set(commentsByUserKey, comment)
-      .set(commentsByItemKey, comment)
-      .commit();
-
-    return comment;
-  }
-}
-
-export async function getCommentsByItem(
-  itemId: string,
-  options?: Deno.KvListOptions,
-) {
-  const iter = await kv.list<Comment>({
-    prefix: ["comments_by_item", itemId],
-  }, options);
-  const comments = [];
-  for await (const res of iter) comments.push(res.value);
-  return comments;
-}
-
-interface InitVote {
-  userId: string;
-  itemId: string;
-}
-
-export async function createVote(initVote: InitVote) {
-  const itemKey = ["items", initVote.itemId];
-  const voteByUserKey = ["votes_by_users", initVote.userId, initVote.itemId];
-
-  let res = { ok: false };
-  while (!res.ok) {
-    const itemRes = await kv.get<Item>(itemKey);
-
-    if (itemRes.value === null) throw new Error("Item does not exist");
-
-    const itemByUserKey = [
-      "items_by_user",
-      itemRes.value.userId,
-      itemRes.value.id,
-    ];
-
-    const itemByUserRes = await kv.get<Item>(itemByUserKey);
-
-    if (itemByUserRes.value === null) {
-      throw new Error("Item by user does not exist");
-    }
-
-    itemByUserRes.value.score++;
-    itemRes.value.score++;
-
-    res = await kv.atomic()
-      .check({ key: voteByUserKey, versionstamp: null })
-      .check(itemByUserRes)
-      .check(itemRes)
-      .set(itemByUserRes.key, itemByUserRes.value)
-      .set(itemRes.key, itemRes.value)
-      .set(voteByUserKey, undefined)
-      .commit();
-  }
-}
-
-export async function getVotedItemIdsByUser(
-  userId: string,
-  options?: Deno.KvListOptions,
-) {
-  const iter = await kv.list<undefined>({
-    prefix: ["votes_by_users", userId],
-  }, options);
-  const voteItemIds = [];
-  for await (const res of iter) voteItemIds.push(res.key.at(-1) as string);
-  return voteItemIds;
-}
 export interface User {
   id: string;
-  login: string;
+  name: string;
+  username: string;
   avatarUrl: string;
-  // stripeCustomerId: string;
   sessionId: string;
 }
 
 export async function createUser(user: User) {
   const usersKey = ["users", user.id];
-  const usersByLoginKey = ["users_by_login", user.login];
+  const usersByLoginKey = ["users_by_login", user.username];
   const usersBySessionKey = ["users_by_session", user.sessionId];
 
   user = { ...user, isSubscribed: false } as User;
@@ -219,7 +72,7 @@ export async function setUserSession(
   sessionId: string,
 ) {
   const usersKey = ["users", user.id];
-  const usersByLoginKey = ["users_by_login", user.login];
+  const usersByLoginKey = ["users_by_login", user.username];
   const usersBySessionKey = ["users_by_session", sessionId];
 
   const [
@@ -253,30 +106,26 @@ export async function setUserSession(
 
 export async function deleteUser(user: User) {
   const usersKey = ["users", user.id];
-  const usersByLoginKey = ["users_by_login", user.login];
+  const usersByLoginKey = ["users_by_login", user.username];
   const usersBySessionKey = ["users_by_session", user.sessionId];
 
   const [
     userRes,
     userByLoginRes,
     userBySessionRes,
-    userByStripeCustomerRes,
   ] = await kv.getMany<User[]>([
     usersKey,
     usersByLoginKey,
     usersBySessionKey,
-    // usersByStripeCustomerKey,
   ]);
 
   const res = await kv.atomic()
     .check(userRes)
     .check(userByLoginRes)
     .check(userBySessionRes)
-    .check(userByStripeCustomerRes)
     .delete(usersKey)
     .delete(usersByLoginKey)
     .delete(usersBySessionKey)
-    // .delete(usersByStripeCustomerKey)
     .commit();
 
   if (!res.ok) {
