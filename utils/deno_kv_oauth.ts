@@ -18,8 +18,8 @@ async function setOAuthSession(
   oauthSessionId: string,
   oauthSession: OAuthSession,
 ) {
-  console.log("SET oauthSessionId:", JSON.stringify(oauthSessionId));
-  console.log("SET oauthSession:\n", JSON.stringify(oauthSession));
+  // console.log("SET oauthSessionId:", JSON.stringify(oauthSessionId));
+  // console.log("SET oauthSession:\n", JSON.stringify(oauthSession));
   await kv.set([OAUTH_SESSION_KV_PREFIX, oauthSessionId], oauthSession);
 }
 
@@ -28,12 +28,12 @@ async function getOAuthSession(oauthSessionId: string) {
     OAUTH_SESSION_KV_PREFIX,
     oauthSessionId,
   ]);
-  console.log("GET oauthSession:\n", JSON.stringify(res));
+  // console.log("GET oauthSession:\n", JSON.stringify(res));
   return res.value;
 }
 
 async function deleteOAuthSession(oauthSessionId: string) {
-  console.log("DELETE oauthSession:", JSON.stringify(oauthSessionId));
+  // console.log("DELETE oauthSession:", JSON.stringify(oauthSessionId));
   await kv.delete([OAUTH_SESSION_KV_PREFIX, oauthSessionId]);
 }
 
@@ -59,7 +59,7 @@ export async function redirectToOAuthLogin(oauth2Client: OAuth2Client) {
     state,
   });
 
-  console.log("URI: ", JSON.stringify(uri));
+  // console.log("URI: ", JSON.stringify(uri));
 
   // Store the state and PKCE code verifier server-side in Deno KV
   const oauthSessionId = crypto.randomUUID();
@@ -89,7 +89,7 @@ export async function getAccessToken(
 
   const tokens = await oauth2Client.code.getToken(request.url, oauthSession);
 
-  console.log("Tokens: ", JSON.stringify(tokens));
+  // console.log("Tokens: ", JSON.stringify(tokens));
 
   return tokens.accessToken;
 }

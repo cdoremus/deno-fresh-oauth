@@ -1,5 +1,5 @@
 import { Head } from "$fresh/runtime.ts";
-import type { ComponentChild, ComponentChildren, JSX } from "preact";
+import type { ComponentChildren } from "preact";
 
 type LayoutProps = {
   children: ComponentChildren;
@@ -33,6 +33,16 @@ export default function Layout(props: LayoutProps) {
         </nav>
       </div>
       {props.children}
+      <footer class="flex justify-center bg-gray-200 p-5">
+        <a href="https://fresh.deno.dev">
+          <img
+            width="197"
+            height="37"
+            src="https://fresh.deno.dev/fresh-badge-dark.svg"
+            alt="Made with Fresh"
+          />
+        </a>
+      </footer>
     </>
   );
 }
