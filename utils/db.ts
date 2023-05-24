@@ -6,7 +6,7 @@ export const kv = await Deno.openKv();
 export interface User {
   id: string;
   name: string;
-  username: string;
+  username: string; // called 'login' in API
   avatarUrl: string;
   sessionId: string;
 }
@@ -16,6 +16,7 @@ export async function createUser(user: User) {
   const usersByLoginKey = ["users_by_login", user.username];
   const usersBySessionKey = ["users_by_session", user.sessionId];
 
+  //TODO: remove
   user = { ...user, isSubscribed: false } as User;
 
   const res = await kv.atomic()

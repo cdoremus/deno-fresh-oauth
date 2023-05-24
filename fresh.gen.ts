@@ -10,7 +10,8 @@ import * as $3 from "./routes/callback.ts";
 import * as $4 from "./routes/index.tsx";
 import * as $5 from "./routes/login.tsx";
 import * as $6 from "./routes/logout.tsx";
-import * as $7 from "./routes/secured/secret_page.tsx";
+import * as $7 from "./routes/secured/_middleware.ts";
+import * as $8 from "./routes/secured/index.tsx";
 
 const manifest = {
   routes: {
@@ -21,7 +22,8 @@ const manifest = {
     "./routes/index.tsx": $4,
     "./routes/login.tsx": $5,
     "./routes/logout.tsx": $6,
-    "./routes/secured/secret_page.tsx": $7,
+    "./routes/secured/_middleware.ts": $7,
+    "./routes/secured/index.tsx": $8,
   },
   islands: {},
   baseUrl: import.meta.url,

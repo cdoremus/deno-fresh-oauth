@@ -4,9 +4,13 @@ import type { ComponentChild, ComponentChildren, JSX } from "preact";
 type LayoutProps = {
   children: ComponentChildren;
   title?: string;
+  session?: string;
 };
 
 export default function Layout(props: LayoutProps) {
+  const loginLink = props.session
+    ? { href: "/logout", name: "Logout" }
+    : { href: "/login", name: "Login" };
   return (
     <>
       <Head>
@@ -24,8 +28,8 @@ export default function Layout(props: LayoutProps) {
           </span>
         </div>
         <nav class="flex flex-grow-0">
-          <a href="/login" class="ml-4">Login</a>
-          <a href="#" class="ml-4">Link 2</a>
+          <a href={loginLink.href} class="ml-4">{loginLink.name}</a>
+          <a href="/" class="ml-4">Home</a>
         </nav>
       </div>
       {props.children}

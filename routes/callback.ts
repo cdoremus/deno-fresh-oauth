@@ -13,6 +13,7 @@ import { oauth2Client } from "@/utils/oauth2_client.ts";
 
 interface GitHubUser {
   id: number;
+  name: string;
   login: string;
   avatar_url: string;
   email: string;
@@ -40,7 +41,8 @@ export const handler: Handlers<any, State> = {
     if (!user) {
       const userInit: User | null = {
         id: githubUser.id.toString(),
-        login: githubUser.login,
+        name: githubUser.name,
+        username: githubUser.login,
         avatarUrl: githubUser.avatar_url,
         sessionId,
       };

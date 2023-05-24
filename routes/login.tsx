@@ -12,9 +12,9 @@ export const handler: Handlers<any, State> = {
    * If not logged in, it continues to rendering the login page.
    */
   async GET(_req, ctx) {
-    console.log("IN LOGIN: ", JSON.stringify(ctx));
+    // console.log("IN LOGIN: ", JSON.stringify(ctx));
     return ctx.state.sessionId
-      ? redirect("/")
+      ? redirect("/secured")
       : await redirectToOAuthLogin(oauth2Client);
   },
 };
