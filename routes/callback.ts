@@ -42,6 +42,7 @@ export const handler: Handlers<any, State> = {
       const userInit: User | null = {
         id: githubUser.id.toString(),
         name: githubUser.name,
+        email: githubUser.email,
         username: githubUser.login,
         avatarUrl: githubUser.avatar_url,
         sessionId,

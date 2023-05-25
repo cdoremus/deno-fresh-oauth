@@ -20,7 +20,7 @@ export const handler: Handlers<HomePageData, State> = {
 };
 
 export default function Home(props: PageProps<HomePageData>) {
-  console.log("Context data for home page: ", JSON.stringify(props));
+  // console.log("Context data for home page: ", JSON.stringify(props));
   const { sessionId } = props.data;
   return (
     <Layout session={sessionId}>

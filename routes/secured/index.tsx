@@ -21,19 +21,27 @@ export const handler: Handlers<SecuredPageData, State> = {
 
 export default function SecuredPage(props: PageProps<SecuredPageData>) {
   const sessionId = props.data.sessionId;
-  const { name, username, avatarUrl } = props.data.user;
+  const { name, email, username, avatarUrl } = props.data.user;
   return (
     <Layout session={sessionId}>
-      <div class="flex-col justify-items-center pl-20">
-        <div class="font-bold text-red font-400 pb-10">
+      <div class="flex flex-col items-center pl-20">
+        <div class="flex font-bold text-red font-400 pb-10">
           This page is a secret for authorized users like you!
         </div>
 
-        <div>
+        <div class="flex flex-col">
           <h2 class="font-bold text-3xl">Here's some of your secret stuff</h2>
           <div>
             <span class="font-bold text-2xl">Name:</span> {name}
           </div>
+          {/* User may not have authorized email access */}
+          {email
+            ? (
+              <div>
+                <span class="font-bold text-2xl">Email:</span> {email}
+              </div>
+            )
+            : ""}
           <div>
             <span class="font-bold text-2xl">Github Username:</span> {username}
           </div>
