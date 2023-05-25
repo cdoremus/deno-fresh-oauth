@@ -27,7 +27,9 @@ async function getUser(accessToken: string): Promise<GitHubUser> {
     await response.body?.cancel();
     throw new Error();
   }
-  return await response.json() as GitHubUser;
+  const user = await response.json();
+  // console.log("GITHUB USER DATA: ", user);
+  return user as GitHubUser;
 }
 
 // deno-lint-ignore no-explicit-any
