@@ -3,10 +3,10 @@
 # Using OAuth with a Fresh app
 
 Using a well-known OAuth provider such as Github, Google or Twitter is a simple
-way to provide authentication and authorization credentials in a Deno Fresh app.
-It also helps the user by not having to remember another username and password.
+way to provide authentication and authorization in a Deno Fresh app. It also
+helps the user by not having to remember another username and password.
 
-The OAuth provider's will do the authentication and authorize access to a subset
+The OAuth provider will do the authentication and authorize access to a subset
 of the user's private data. Most of the time an app will only need the user's
 name and email address.
 
@@ -17,10 +17,15 @@ Authorization with OAuth involves a multi-step process:
 2. Using the auth code to obtain a auth token
 3. Using the token to access protected resources
 
+The OAuth (OAuth2) standard strictly only covers the authorization process, but
+OAuth providers require that a user be logged in to authorize an OAuth
+application.
+
 ## Getting started
 
-We will be creating an app and using Github as an OAuth provider starting with a
-basic Fresh app created using the following:
+We will be creating an app to demonstrate OAuth using Github as an OAuth
+provider in a Fresh app. To get started, lets scaffold out the app using the
+Fresh initialization script.
 
 ```ts
 $ deno run -A -r https://fresh.deno.dev my-oauth-app
@@ -37,7 +42,7 @@ https://localhost:8000 and make sure the app properly renders the home page.
 Stop the server and clean out the content from `routes/index.tsx` so it can be
 replaced by your app's home page content. We created a `Layout` component to
 wrap each page's content in a header and footer and used Fresh's built-in `Head`
-component to add content to the `<head>` element.
+component to add content to the `<head>` element. The repo holding the code
 
 ## Interacting with the OAuth provider using an API
 
@@ -87,7 +92,8 @@ in the future.
 - To retest OAuth flow, revoke app access by going to Settings -> Applications
   -> Authorized OAuth Apps. Find the app on the list and select Revoke from the
   menu. When you access the app again, you will be forced into the Github OAuth
-  flow.
+  flow. You should also delete the 'session' cookie in the browser Dev Tool's
+  Applications tab.
 - To clear your KV database, run the following snippet in the Deno repl using
   the `--unstable` flag:
 
