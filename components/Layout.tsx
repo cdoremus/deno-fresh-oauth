@@ -14,9 +14,9 @@ export default function Layout(props: LayoutProps) {
   return (
     <>
       <Head>
-        <title>{props.title ? props.title : "Deno Fresh Auth"}</title>
+        <title>{props.title ? props.title : "Deno Fresh OAuth"}</title>
       </Head>
-      <div class="flex items-center bg-gray-200 p-5 mx-auto h-1/5">
+      <header class="flex items-center bg-gray-200 p-5 mx-auto h-1/5">
         <div class="flex items-center flex-grow-1">
           <img
             src="/logo.svg"
@@ -24,15 +24,17 @@ export default function Layout(props: LayoutProps) {
             alt="the fresh logo: a sliced lemon dripping with juice"
           />
           <span class="text-3xl font-bold">
-            Welcome to Deno Fresh Auth
+            Welcome to Deno Fresh OAuth
           </span>
         </div>
         <nav class="flex flex-grow-0">
           <a href={loginLink.href} class="ml-4">{loginLink.name}</a>
           <a href="/" class="ml-4">Home</a>
         </nav>
-      </div>
-      {props.children}
+      </header>
+      <main>
+        {props.children}
+      </main>
       <footer class="flex justify-center bg-gray-200 p-5">
         <a href="https://fresh.deno.dev">
           <img
