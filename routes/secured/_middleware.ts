@@ -4,14 +4,14 @@ import { MiddlewareHandlerContext } from "$fresh/server.ts";
 import { redirect } from "@/utils/http.ts";
 import { getUserBySessionId, User } from "@/utils/db.ts";
 
-export interface AccountState extends State {
+export interface SecuredState extends State {
   sessionId: string;
   user: User;
 }
 
 export async function handler(
   _req: Request,
-  ctx: MiddlewareHandlerContext<AccountState>,
+  ctx: MiddlewareHandlerContext<SecuredState>,
 ) {
   const redirectResponse = redirect("/login");
 
