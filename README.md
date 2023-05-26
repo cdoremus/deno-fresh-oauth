@@ -129,9 +129,22 @@ users data that will be available to the client application. For Github, the
 `read:user` scope gives read-only access to basic user information including
 name, login username and avatar URL.
 
+The two main functions on the `OAuth2Client` class `code` field covers the
+authorization endpoint (`getAuthorizationUri()`) and access token (`getToken()`)
+calls to the OAuth provider.
+
+Once a user has been authenticated, the session id is stored in a browser
+cookie. The `setSessionCookie`, `getSessionCookie` and `delete sessionCookie`
+functions in `utils/deno_kv_oauth.ts` is used for cookie manipulation. The
+browser cookie is also used to look up a user and get his/her data returned from
+Github to be displayed on the `/secured` page.
+
+TODO: MORE STUFF XXXXXXXXXXXXXXXXXXXX
+
 .....................................
 
 - **TODO:** Refresh token
+  - `RefreshTokenGrant.refresh` called
 
 ............ NOTES .................
 
@@ -144,7 +157,7 @@ name, login username and avatar URL.
 - `utils/deno_kv_oauth.ts` wraps `deno-oauth2-client` calls inside convenience
   methods.
 
-**A user's interaction with the Github OAuth flow**
+**A user's interaction with the Github OAuth flow** (_This may be removed_)
 
 1. Click on the app's `login` link
 2. Redirected to Github where you may need to login
@@ -153,7 +166,9 @@ name, login username and avatar URL.
    information.
    - ??Graphic here??
    - Provide a link to the Github basic:user scope page listing the available
-     user properties. .....................................
+     user properties.
+
+     .....................................
 
 ## Using Deno KV to store session and user data
 
