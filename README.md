@@ -232,12 +232,13 @@ TODO: XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 **Appendix: Development and Troubleshooting Tips**
 
-- To debug the demo application in Chrome, run the `debug` task, browse to
-  `chrome://inspect` and click on the `inspect` link. The Dev Tools `sources`
-  tab will come up where you can set breakpoints, step through the application
-  code and view object values. If no source comes up in the tree view, you may
-  need to click on 'add folder to workspace' and manually add your workspace
-  folder.
+- A debugger can be your friend here because there's a lot going on during the
+  OAuth flow. To debug the demo application in Chrome, run the `debug` task,
+  browse to `chrome://inspect` and click on the `inspect` link. The Dev Tools
+  `sources` tab will come up where you can set breakpoints, step through the
+  application code and view object values. If no source comes up in the tree
+  view, you may need to click on 'add folder to workspace' and manually add your
+  workspace folder.
 - To retest OAuth flow, revoke app access by going to Settings -> Applications
   -> Authorized OAuth Apps. Find the app on the list and select Revoke from the
   menu. You also need to delete the 'session' cookie in the browser Dev Tool's
