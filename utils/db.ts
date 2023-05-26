@@ -6,7 +6,7 @@ export const kv = await Deno.openKv();
 export interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string; // may be private
   username: string; // called 'login' in API
   avatarUrl: string;
   sessionId: string;
