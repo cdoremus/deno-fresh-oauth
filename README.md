@@ -140,15 +140,93 @@ The two main functions on the `OAuth2Client` class `code` field covers the
 authorization endpoint (`getAuthorizationUri()`) and access token (`getToken()`)
 calls to the OAuth provider.
 
-When a user clicks the `Login` link on the page header, the OAuth flow is
-initiated and the `getAuthorizationUri()` and `getToken()` methods are called.
-**TODO:** Elaborate with code snippets...
+When a user clicks the `Login` link on the page header initiates the OAuth flow.
+It starts with a call to `getAuthorizationUri()` followed by a call `getToken()`
+using the `deno-auth2-client`. The first call retrieves a 'code verifier' token
+and the authorization endpoint URL. The verifier and random state is stored in
+Deno KV (see below) and client-side in a browser cookie called 'session'. This
+function in `utils/deno_kv_oauth.ts` is where that happens:
+
+```ts
+export async function redirectToOAuthLogin(oauth2Client: OAuth2Client) {
+  const state = crypto.randomUUID(); // random state
+  const { uri, codeVerifier } = await oauth2Client.code.getAuthorizationUri({
+    state,
+  });
+  // Store the state and code verifier server-side in Deno KV
+  const oauthSessionId = crypto.randomUUID();
+  await setOAuthSession(oauthSessionId, {
+    state,
+    codeVerifier,
+  });
+  // Store the state and code verifier client-side in a session cookie
+  const headers = new Headers({ location: uri.toString() });
+  setOAuthSessionCookie(headers, oauthSessionId);
+  // Redirect to the authorization endpoint
+  return new Response(null, { status: 302, headers });
+}
+```
+
+**TODO:** Getting the access token using `getToken`
+
+The next step is to obtain the access token.........
+
+```ts
+export async function getAccessToken(
+  request: Request,
+  oauth2Client: OAuth2Client,
+) {
+  // get session cookie
+  const oauthSessionId = getOAuthSessionCookie(request.headers);
+  // get session from KV
+  const oauthSession = await getOAuthSession(oauthSessionId);
+  // delete session from Deno KV
+  await deleteOAuthSession(oauthSessionId);
+  // get the token from the access token endpoint
+  const tokens = await oauth2Client.code.getToken(request.url, oauthSession);
+
+  return tokens.accessToken;
+}
+```
+
+**TODO:** Using the access token to get user information
+
+Finally, the access token is used to get user information from Github.......
+
+```ts
+// routes/callback.ts
+export const handler: Handlers<any, State> = {
+  async GET(req) {
+    const accessToken = await getAccessToken(req, oauth2Client);
+    const githubUser = await getUser(accessToken);
+    const sessionId = crypto.randomUUID();
+
+    const user = await getUserById(githubUser.id.toString());
+    if (!user) {
+      const userInit: User | null = {
+        id: githubUser.id.toString(),
+        name: githubUser.name,
+        email: githubUser.email,
+        username: githubUser.login,
+        avatarUrl: githubUser.avatar_url,
+        sessionId,
+      };
+      await createUser(userInit);
+    } else {
+      await setUserSession(user, sessionId);
+    }
+    const response = redirect("/");
+    setCallbackHeaders(response.headers, sessionId);
+    return response;
+  },
+};
+```
 
 **Storing the session id in a cookie**
 
 Once a user has been authenticated, the session id is stored in a browser cookie
 called 'session' that is 36 characters long. The `setSessionCookie`,
-`getSessionCookie` and `delete sessionCookie` functions in
+`getSessionCookie` and `deleteSessionCookie` functions in
 `utils/deno_kv_oauth.ts` is used for cookie manipulation. The browser cookie is
 also used to look up a user and get his/her data returned from Github to be
 displayed on the `/secured` page.
@@ -165,19 +243,18 @@ it deletes the 'session' browser cookie.
 
 ## Using Deno KV to store session and user data
 
-Deno KV is a simple key-value store recently added to the Deno runtime and soon
-coming to Deno Deploy. Currently, the API has been marked _unstable_ so be aware
-that some of the code in this article and in the associated demo app may change
-in the future.
+Deno KV is a simple key-value store recently added to the Deno runtime and
+coming soon to Deno Deploy. Currently, the API has been marked _unstable_, so be
+aware that some of the code in this article and in the associated demo app may
+change in the future.
 
 The basic KV CRUD operations utilize the `set()` (create and update), `get()`
 (read) and `delete` (delete) functions on the `Deno.Kv` class (see the
 [Deno.KV API docs](https://deno.land/api@v1.34.0?unstable=&s=Deno.Kv) and the
-[Deno KV section in the Deno Manual](https://deno.com/manual@v1.34.0/runtime/kv)).
+[KV section in the Deno Manual](https://deno.com/manual@v1.34.0/runtime/kv)).
 
-KV is used here to temporarily store session data during the OAuth flow between
-calls to `getAuthorizationUri()` and `getToken()` using the `deno-auth2-client`.
-**TODO:** Elaborate `oauth-session` creation and deletion.
+KV is used here to temporarily store session data during the OAuth flow.
+**TODO:** more
 
 KV is also used here to store user information obtained from Github in various
 ways to facilitate performant queries. They include:
@@ -188,10 +265,10 @@ ways to facilitate performant queries. They include:
 
 A KV [Key](https://deno.com/manual@v1.34.0/runtime/kv/key_space#keys) is an
 array sequence with parts. In our case, we have a name part and an id part so
-that in the key `["users", "1 ]`, "users' would be the name and "1" would be the
+that in the key `["users", "1 ]`, "users" would be the name and "1" would be the
 id.
 
-In each case, the KV value is the a `User` object defined by this interface:
+In each case, the KV value is a `User` object defined by this interface:
 
 ```ts
 export interface User {
