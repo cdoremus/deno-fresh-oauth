@@ -140,7 +140,11 @@ The two main functions on the `OAuth2Client` class `code` field covers the
 authorization endpoint (`getAuthorizationUri()`) and access token (`getToken()`)
 calls to the OAuth provider.
 
-**Storing the session id**
+When a user clicks the `Login` link on the page header, the OAuth flow is
+initiated and the `getAuthorizationUri()` and `getToken()` methods are called.
+**TODO:** Elaborate with code snippets...
+
+**Storing the session id in a cookie**
 
 Once a user has been authenticated, the session id is stored in a browser cookie
 called 'session' that is 36 characters long. The `setSessionCookie`,
@@ -149,29 +153,15 @@ called 'session' that is 36 characters long. The `setSessionCookie`,
 also used to look up a user and get his/her data returned from Github to be
 displayed on the `/secured` page.
 
-The Logout link is shown after a user logs in. Clicking on it deletes the
-'session' browser cookie.
-
-TODO: MORE STUFF XXXXXXXXXXXXXXXXXXXX
+The `Logout` link is shown in the page header after a user logs in. Clicking on
+it deletes the 'session' browser cookie.
 
 .....................................
 
 - **TODO:** Refresh token
-  - Call `RefreshTokenGrant.refresh()` in `deno-oauth2-client` lib
+  - Refresh token is used to refresh an expired access token
+  - Call `RefreshTokenGrant.refresh()` in `deno-oauth2-client` lib to refresh
   - Difficult to test in Github because tokens take 1 year to expire
-
-............ NOTES .................
-
-- create code to interact with the OAuth provider to lead the user through the
-  OAuth flow. The flow....
-  - using the `deno-oauth2-client` library.
-    - Add to import map
-- `login.ts` and `logout.ts` routes are used to interact with the OAuth
-  providers API via the `deno-oauth2-client` library.
-- `utils/deno_kv_oauth.ts` wraps `deno-oauth2-client` calls inside convenience
-  methods.
-
-  .....................................
 
 ## Using Deno KV to store session and user data
 
@@ -189,11 +179,38 @@ KV is used here to temporarily store session data during the OAuth flow between
 calls to `getAuthorizationUri()` and `getToken()` using the `deno-auth2-client`.
 **TODO:** Elaborate `oauth-session` creation and deletion.
 
-- When a user logs out and logs in again a new record is added to the the
-  `users-by-session` KV store.
+KV is also used here to store user information obtained from Github in various
+ways to facilitate performant queries. They include:
 
-- KV is also used here to store user information obtained from github in various
-  ways for easy access in a variety of ways.
+- `users` - store users by a user id
+- `users_by_login` - store users by the Github username
+- `users_by_session` - store users by the session id
+
+A KV [Key](https://deno.com/manual@v1.34.0/runtime/kv/key_space#keys) is an
+array sequence with parts. In our case, we have a name part and an id part so
+that in the key `["users", "1 ]`, "users' would be the name and "1" would be the
+id.
+
+In each case, the KV value is the a `User` object defined by this interface:
+
+```ts
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
+  username: string; // called 'login' in GH API
+  avatarUrl: string;
+  sessionId: string;
+}
+```
+
+The email value may be null since the Github allows users to set their email
+address as private.
+
+When a user logs out and logs in again a new record is added to the the
+`users_by_session` KV store. When a user goes to the `/secured` route, the
+`user_by_session` store is queried for the user's information. If the User
+record cannot be found, the user is denied access to the route.
 
 ## Conclusion
 
@@ -204,10 +221,10 @@ reason why you could not use OAuth to secure application build with Oak, Aleph,
 Ultra or any other Deno web framework.
 
 Similarly, another OAuth provider can be used instead of Github or you can allow
-the user to select from a number of different providers. In that case, there is
-a different mechanism to register your application with a provider and different
-argument values used to call `OAuth2Client` including different values of the
-default `scope`.
+the user to select from a number of different providers. If the user decides to
+use a non-Github provider, the application needs to be registered with the
+provider by a different mechanism and different argument values will be used to
+call `OAuth2Client` including different values for the default `scope`.
 
 TODO: XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
