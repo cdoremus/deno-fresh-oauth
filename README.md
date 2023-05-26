@@ -140,6 +140,8 @@ The two main functions on the `OAuth2Client` class `code` field covers the
 authorization endpoint (`getAuthorizationUri()`) and access token (`getToken()`)
 calls to the OAuth provider.
 
+**Storing the session id**
+
 Once a user has been authenticated, the session id is stored in a browser cookie
 called 'session' that is 36 characters long. The `setSessionCookie`,
 `getSessionCookie` and `delete sessionCookie` functions in
@@ -155,8 +157,8 @@ TODO: MORE STUFF XXXXXXXXXXXXXXXXXXXX
 .....................................
 
 - **TODO:** Refresh token
-  - `RefreshTokenGrant.refresh` called
-  - Difficult to test in Github because tokens don't expire until 1 year
+  - Call `RefreshTokenGrant.refresh()` in `deno-oauth2-client` lib
+  - Difficult to test in Github because tokens take 1 year to expire
 
 ............ NOTES .................
 
@@ -178,16 +180,20 @@ coming to Deno Deploy. Currently, the API has been marked _unstable_ so be aware
 that some of the code in this article and in the associated demo app may change
 in the future.
 
-- KV is used here to temporarily store session data during the
-  authentication/authorization process as described in the previous section.
+The basic KV CRUD operations utilize the `set()` (create and update), `get()`
+(read) and `delete` (delete) functions on the `Deno.Kv` class (see the
+[Deno.KV API docs](https://deno.land/api@v1.34.0?unstable=&s=Deno.Kv) and the
+[Deno KV section in the Deno Manual](https://deno.com/manual@v1.34.0/runtime/kv)).
 
-- KV is also used here to store user information obtained from github in various
-  ways for easy access in a variety of ways.
-
-- There is a `oauth-session` store used to persist ................
+KV is used here to temporarily store session data during the OAuth flow between
+calls to `getAuthorizationUri()` and `getToken()` using the `deno-auth2-client`.
+**TODO:** Elaborate `oauth-session` creation and deletion.
 
 - When a user logs out and logs in again a new record is added to the the
   `users-by-session` KV store.
+
+- KV is also used here to store user information obtained from github in various
+  ways for easy access in a variety of ways.
 
 ## Conclusion
 
