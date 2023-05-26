@@ -49,29 +49,34 @@ be found at https://github.com/cdoremus/deno-fresh-oauth.
 
 ## Using OAuth to secure app routes
 
+**Register your application**
+
 In order to work with an OAuth provider, you need to register your app with the
-provider. In Github, you:
+provider. To
+[register a new GitHub OAuth application](https://github.com/settings/applications/new)
+you need to provide the following values:
 
-1. Go to your Github user page and select settings in the main menu
-2. On the Public Profile page, select Developer Settings at the bottom of the
-   menu
-3. Select OAuth Apps on the resulting page and click the New OAuth App button.
-   Fill in:
-   - Application name
-   - Home page URL: http://localhost:8000
-   - Authorization callback URL: http://localhost:8000/callback
-4. Click 'Register Application'.
-5. On the resulting page, copy the Client ID to a GITHUB_CLIENT_ID property in a
-   `.env` file residing in the repo's root folder.
-6. Click 'Generate new client secret' and copy the secret to
-   GITHUB_CLIENT_SECRET in`.env` file.
+- `Application name` = a name of your own choosing
+- `Homepage URL` = `http://localhost:8000`
+- `Authorization callback URL` = `http://localhost:8000/callback`
 
-In order for the properties in `.env` to be read in the app, you need to add the
-following import to `dev.ts`:
+After clicking the 'Register Application' button the resulting page shows a
+Client ID property. Clicking 'Generate new client secret' creates a Client
+Secret. Copy the Client ID and Client Secret into a`.env` file containing
+GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET variables.
+
+Add the following import to `dev.ts` to allow the client id and client secret to
+be available to the application using the `Deno.env.get` call:
 
 ```ts
 import "std/dotenv/load.ts";
 ```
+
+Most production server environments have alternate ways to expose environmental
+variables to the deployed application. In Deno Deploy, there is an Environmental
+Variables section under the Settings tab.
+
+**Securing a route**
 
 We are using OAuth to secure the `/secured` route that holds private
 information. You'll noticed that if you aren't logged in and try to browse to
@@ -102,6 +107,8 @@ The Deno-native library
 [`deno-oauth2-client`](https://github.com/cmd-johnson/deno-oauth2-client) wraps
 the generic OAuth flow including Github's implementation and we are using that
 in our demo app.
+
+**Calling the OAuth API**
 
 The `deno-oauth2-client` lib uses a `OAuth2Client` class to encapsulate the
 OAuth flow. It is instantiated in the `utils/oauth2_client.ts` file:
@@ -162,18 +169,7 @@ TODO: MORE STUFF XXXXXXXXXXXXXXXXXXXX
 - `utils/deno_kv_oauth.ts` wraps `deno-oauth2-client` calls inside convenience
   methods.
 
-**A user's interaction with the Github OAuth flow** (_This may be removed_)
-
-1. Click on the app's `login` link
-2. Redirected to Github where you may need to login
-3. Moved to the GH Authorize screen where you will be asked to authorize the
-   previously registered app to gain access to some of your basic user
-   information.
-   - ??Graphic here??
-   - Provide a link to the Github basic:user scope page listing the available
-     user properties.
-
-     .....................................
+  .....................................
 
 ## Using Deno KV to store session and user data
 
