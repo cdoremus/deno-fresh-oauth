@@ -133,11 +133,15 @@ The two main functions on the `OAuth2Client` class `code` field covers the
 authorization endpoint (`getAuthorizationUri()`) and access token (`getToken()`)
 calls to the OAuth provider.
 
-Once a user has been authenticated, the session id is stored in a browser
-cookie. The `setSessionCookie`, `getSessionCookie` and `delete sessionCookie`
-functions in `utils/deno_kv_oauth.ts` is used for cookie manipulation. The
-browser cookie is also used to look up a user and get his/her data returned from
-Github to be displayed on the `/secured` page.
+Once a user has been authenticated, the session id is stored in a browser cookie
+called 'session' that is 36 characters long. The `setSessionCookie`,
+`getSessionCookie` and `delete sessionCookie` functions in
+`utils/deno_kv_oauth.ts` is used for cookie manipulation. The browser cookie is
+also used to look up a user and get his/her data returned from Github to be
+displayed on the `/secured` page.
+
+The Logout link is shown after a user logs in. Clicking on it deletes the
+'session' browser cookie.
 
 TODO: MORE STUFF XXXXXXXXXXXXXXXXXXXX
 
@@ -145,6 +149,7 @@ TODO: MORE STUFF XXXXXXXXXXXXXXXXXXXX
 
 - **TODO:** Refresh token
   - `RefreshTokenGrant.refresh` called
+  - Difficult to test in Github because tokens don't expire until 1 year
 
 ............ NOTES .................
 
@@ -183,6 +188,11 @@ in the future.
 - KV is also used here to store user information obtained from github in various
   ways for easy access in a variety of ways.
 
+- There is a `oauth-session` store used to persist ................
+
+- When a user logs out and logs in again a new record is added to the the
+  `users-by-session` KV store.
+
 ## Conclusion
 
 This article demonstrated how to use an OAuth provider to easily add add
@@ -190,6 +200,12 @@ authentication and authorization to your Fresh application using a secure,
 battle-tested protocol. While we provide an example with Fresh here, there is no
 reason why you could not use OAuth to secure application build with Oak, Aleph,
 Ultra or any other Deno web framework.
+
+Similarly, another OAuth provider can be used instead of Github or you can allow
+the user to select from a number of different providers. In that case, there is
+a different mechanism to register your application with a provider and different
+argument values used to call `OAuth2Client` including different values of the
+default `scope`.
 
 TODO: XXXXXXXXXXXXXXXXXXXXXXXXXXX
 
