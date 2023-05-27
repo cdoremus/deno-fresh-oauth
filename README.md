@@ -56,7 +56,7 @@ provider. To
 [register a new GitHub OAuth application](https://github.com/settings/applications/new)
 you need to provide the following values:
 
-- `Application name` = a name of your own choosing
+- `Application name` = a name of your own choice
 - `Homepage URL` = `http://localhost:8000`
 - `Authorization callback URL` = `http://localhost:8000/callback`
 
@@ -80,19 +80,20 @@ Variables section under the Settings tab.
 
 We are using OAuth to secure the `/secured` route that holds private
 information. You'll noticed that if you aren't logged in and try to browse to
-the `/secured` route you will be redirected back to the home page ('/`).
+`/secured` you will be redirected back to the home page (`/`).
 
-Fresh middleware is used to guard our secured area. The middleware checks that a
-`sessionId` has been set on the Fresh Context state field. That field is set
-once authentication occurs. In Fresh, a `_middleware.ts` file is used to define
-middleware (see the
-[Route MIddleware docs](https://fresh.deno.dev/docs/concepts/middleware)).
+[Fresh middleware](https://fresh.deno.dev/docs/concepts/middleware) is used to
+guard our secured area. The middleware checks that a `sessionId` has been set on
+the Fresh Context state field. That field is set once authentication occurs. In
+Fresh, a `_middleware.ts` file is used to define middleware on a route.
 
-The OAuth flow in the demo app begins with the `login.ts` route which checks to
-see if the `sessionId` variable has been set. If not, the user is redirected to
-the Github OAuth flow via the `redirectToOAuthLogin()` function.
+The OAuth flow in the demo app begins when the user clicks on the 'Login' link
+invoking the
+`/login route (`login.ts`) The route's handler function checks to see if the`sessionId`variable has been set. If not, the user is redirected to the Github OAuth flow via the`redirectToOAuthLogin()`
+function.
 
 ```ts
+// routes/login.ts
 export const handler: Handlers<any, State> = {
   async GET(_req, ctx) {
     return ctx.state.sessionId
@@ -102,16 +103,11 @@ export const handler: Handlers<any, State> = {
 };
 ```
 
-The Github OAuth flow uses the provider's API to interact with the application.
-The Deno-native library
-[`deno-oauth2-client`](https://github.com/cmd-johnson/deno-oauth2-client) wraps
-the generic OAuth flow including Github's implementation and we are using that
-in our demo app.
-
-**Calling the OAuth API**
-
-The `deno-oauth2-client` lib uses a `OAuth2Client` class to encapsulate the
-OAuth flow. It is instantiated in the `utils/oauth2_client.ts` file:
+The `redirectToOAuthLogin()` function is the entryway to our deep dive into the
+OAuth flow. We are using the Deno-native library
+[`deno-oauth2-client`](https://github.com/cmd-johnson/deno-oauth2-client) that
+abstracts the generic OAuth process. This lib uses a `OAuth2Client` class to
+encapsulate OAuth flow. It is instantiated in the `utils/oauth2_client.ts` file:
 
 ```ts
 export const oauth2Client = new OAuth2Client({
@@ -125,27 +121,23 @@ export const oauth2Client = new OAuth2Client({
 });
 ```
 
-The `authorizationEndpointUri` and `tokenUri` is used to access the OAuth
-provider's authorization process. We covered getting the `clientId` and
-`clientSecret` above. Make sure they are in a private place and not pushed to
-your Github repo.
+The `authorizationEndpointUri` and `tokenUri` is used to during the OAuth flow.
+We covered getting the `clientId` and `clientSecret` above. Make sure they are
+in a private place and not pushed to your Github repo.
 
-The `scope` determines what private information the user authorizes access to.
-Scopes can be different for each OAuth provider, but they define a subset of the
-users data that will be available to the client application. For Github, the
+The default `scope` determines what private user information our application has
+access to. Scopes can be different for each OAuth provider. For Github, the
 `read:user` scope gives read-only access to basic user information including
 name, login username and avatar URL.
 
-The two main functions on the `OAuth2Client` class `code` field covers the
-authorization endpoint (`getAuthorizationUri()`) and access token (`getToken()`)
-calls to the OAuth provider.
+The two main functions on the `OAuth2Client` class `code` field (an
+`AuthorizationCodeGrant` class instance) covers the authorization endpoint
+(`getAuthorizationUri()`) and access token (`getToken()`) calls to the OAuth
+provider.
 
-When a user clicks the `Login` link on the page header initiates the OAuth flow.
-It starts with a call to `getAuthorizationUri()` followed by a call `getToken()`
-using the `deno-auth2-client`. The first call retrieves a 'code verifier' token
-and the authorization endpoint URL. The verifier and random state is stored in
-Deno KV (see below) and client-side in a browser cookie called 'session'. This
-function in `utils/deno_kv_oauth.ts` is where that happens:
+As noted above, clicking the 'Login' (`/login`) link leads us back to the
+`redirectToOAuthLogin()` function in `utils/deno_kv_oauth.ts` called by the
+`login.ts` handler.
 
 ```ts
 export async function redirectToOAuthLogin(oauth2Client: OAuth2Client) {
@@ -167,18 +159,25 @@ export async function redirectToOAuthLogin(oauth2Client: OAuth2Client) {
 }
 ```
 
-**TODO:** Getting the access token using `getToken`
+The `getAuthorizationUri()` requests the authorization URL and code verifier
+from Github. A randomly generated state token and the code verifier is stored
+temporarily in Deno KV. In addition, a session id is randomly generated and
+stored in a browser cookie called `session`. Finally, the response is redirected
+back to the authorization endpoint.
 
-The next step is to obtain the access token.........
+The next step is to obtain the access token using the `getAccessToken()` called
+in the `/callback` route's handler. Recall that we configured our Github OAuth
+callback URL to be that route. He're an annotated look at what goes on inside of
+`getAccessToken()`:
 
 ```ts
 export async function getAccessToken(
   request: Request,
   oauth2Client: OAuth2Client,
 ) {
-  // get session cookie
+  // get session cookie holding session id
   const oauthSessionId = getOAuthSessionCookie(request.headers);
-  // get session from KV
+  // get session from Deno KV store
   const oauthSession = await getOAuthSession(oauthSessionId);
   // delete session from Deno KV
   await deleteOAuthSession(oauthSessionId);
@@ -197,10 +196,12 @@ Finally, the access token is used to get user information from Github.......
 // routes/callback.ts
 export const handler: Handlers<any, State> = {
   async GET(req) {
+    // get the OAuth access token
     const accessToken = await getAccessToken(req, oauth2Client);
-    const githubUser = await getUser(accessToken);
+    // call GH user API using the access token
+    const githubUser = await getUser(accessToken); // local function
     const sessionId = crypto.randomUUID();
-
+    // find user in the Deno KV store
     const user = await getUserById(githubUser.id.toString());
     if (!user) {
       const userInit: User | null = {
@@ -211,10 +212,13 @@ export const handler: Handlers<any, State> = {
         avatarUrl: githubUser.avatar_url,
         sessionId,
       };
+      // Insert user in the the KV store
       await createUser(userInit);
     } else {
+      // Update users session in KV
       await setUserSession(user, sessionId);
     }
+    // return to the home page
     const response = redirect("/");
     setCallbackHeaders(response.headers, sessionId);
     return response;
@@ -222,7 +226,11 @@ export const handler: Handlers<any, State> = {
 };
 ```
 
-**Storing the session id in a cookie**
+Once the `callback.ts` handler function completes, the app user has been
+authenticated and the application has all the user information it needed from
+Github and the what it needs to secure the `/secured` route.
+
+**Storing the session id in a cookie**(_??Is this needed??_)
 
 Once a user has been authenticated, the session id is stored in a browser cookie
 called 'session' that is 36 characters long. The `setSessionCookie`,
@@ -253,7 +261,8 @@ The basic KV CRUD operations utilize the `set()` (create and update), `get()`
 [Deno.KV API docs](https://deno.land/api@v1.34.0?unstable=&s=Deno.Kv) and the
 [KV section in the Deno Manual](https://deno.com/manual@v1.34.0/runtime/kv)).
 
-KV is used here to temporarily store session data during the OAuth flow.
+KV is used here to temporarily store session data during the OAuth flow between
+the call to the authorization URL and the call to get the access token.
 **TODO:** more
 
 KV is also used here to store user information obtained from Github in various
