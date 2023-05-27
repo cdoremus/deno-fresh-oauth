@@ -66,7 +66,7 @@ Secret. Copy the Client ID and Client Secret into a`.env` file containing
 GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET variables.
 
 Add the following import to `dev.ts` to allow the client id and client secret to
-be available to the application using the `Deno.env.get` call:
+be available to the application using `Deno.env.get`:
 
 ```ts
 import "std/dotenv/load.ts";
@@ -78,7 +78,7 @@ Variables section under the Settings tab.
 
 **Securing a route**
 
-We are using OAuth to secure the `/secured` route that holds private
+We are using OAuth to help secure the `/secured` route that holds private
 information. You'll noticed that if you aren't logged in and try to browse to
 `/secured` you will be redirected back to the home page (`/`).
 
@@ -88,9 +88,9 @@ the Fresh Context state field. That field is set once authentication occurs. In
 Fresh, a `_middleware.ts` file is used to define middleware on a route.
 
 The OAuth flow in the demo app begins when the user clicks on the 'Login' link
-invoking the
-`/login route (`login.ts`) The route's handler function checks to see if the`sessionId`variable has been set. If not, the user is redirected to the Github OAuth flow via the`redirectToOAuthLogin()`
-function.
+invoking the `/login` route (`login.ts`) The route's handler function checks to
+see if a `sessionId`variable has been set. If not, the user is redirected to the
+Github OAuth flow via the`redirectToOAuthLogin()` function.
 
 ```ts
 // routes/login.ts
@@ -103,11 +103,11 @@ export const handler: Handlers<any, State> = {
 };
 ```
 
-The `redirectToOAuthLogin()` function is the entryway to our deep dive into the
-OAuth flow. We are using the Deno-native library
+The `redirectToOAuthLogin()` function is our gateway into the OAuth flow. We are
+using the Deno-native library
 [`deno-oauth2-client`](https://github.com/cmd-johnson/deno-oauth2-client) that
-abstracts the generic OAuth process. This lib uses a `OAuth2Client` class to
-encapsulate OAuth flow. It is instantiated in the `utils/oauth2_client.ts` file:
+abstracts the generic OAuth process. This lib uses a `OAuth2Client` class as a
+starting point. It is instantiated in the `utils/oauth2_client.ts` file:
 
 ```ts
 export const oauth2Client = new OAuth2Client({
@@ -121,23 +121,23 @@ export const oauth2Client = new OAuth2Client({
 });
 ```
 
-The `authorizationEndpointUri` and `tokenUri` is used to during the OAuth flow.
-We covered getting the `clientId` and `clientSecret` above. Make sure they are
-in a private place and not pushed to your Github repo.
+The `authorizationEndpointUri` and `tokenUri` arguments are used to during the
+OAuth flow. We covered getting the `clientId` and `clientSecret` above. Make
+sure they are in a private place and not pushed to your Github repo by adding
+them to `.gitignore`.
 
-The default `scope` determines what private user information our application has
-access to. Scopes can be different for each OAuth provider. For Github, the
-`read:user` scope gives read-only access to basic user information including
-name, login username and avatar URL.
+The default `scope` argument determines what private user information our
+application has access to. Scopes can be different for each OAuth provider. For
+Github, the `read:user` scope gives read-only access to basic user information
+including name, login username and avatar URL.
 
-The two main functions on the `OAuth2Client` class `code` field (an
-`AuthorizationCodeGrant` class instance) covers the authorization endpoint
-(`getAuthorizationUri()`) and access token (`getToken()`) calls to the OAuth
-provider.
+The `OAuth2Client` class's `code` field (an `AuthorizationCodeGrant` class
+instance) is used for authorization endpoint (`getAuthorizationUri()`) and
+access token (`getToken()`) calls to the OAuth provider.
 
 As noted above, clicking the 'Login' (`/login`) link leads us back to the
 `redirectToOAuthLogin()` function in `utils/deno_kv_oauth.ts` called by the
-`login.ts` handler.
+`login.ts` handler function.
 
 ```ts
 export async function redirectToOAuthLogin(oauth2Client: OAuth2Client) {
@@ -159,16 +159,16 @@ export async function redirectToOAuthLogin(oauth2Client: OAuth2Client) {
 }
 ```
 
-The `getAuthorizationUri()` requests the authorization URL and code verifier
-from Github. A randomly generated state token and the code verifier is stored
-temporarily in Deno KV. In addition, a session id is randomly generated and
-stored in a browser cookie called `session`. Finally, the response is redirected
-back to the authorization endpoint.
+The `getAuthorizationUri()` call requests the authorization URL and code
+verifier from Github. A randomly generated state token and the code verifier is
+stored temporarily in Deno KV. In addition, a session id is randomly generated
+and stored in a browser cookie called `session`. Finally, the response is
+redirected back to the authorization endpoint.
 
 The next step is to obtain the access token using the `getAccessToken()` called
-in the `/callback` route's handler. Recall that we configured our Github OAuth
-callback URL to be that route. He're an annotated look at what goes on inside of
-`getAccessToken()`:
+in the `/callback` route's handler function. Recall that we configured our
+Github OAuth callback URL to be that route. Here is an annotated look at what
+goes on inside of `getAccessToken()`:
 
 ```ts
 export async function getAccessToken(
@@ -188,9 +188,8 @@ export async function getAccessToken(
 }
 ```
 
-**TODO:** Using the access token to get user information
-
-Finally, the access token is used to get user information from Github.......
+Finally, the access token is used to get user information from Github in the
+`callback.ts` route's handler function. Here's what happens there:
 
 ```ts
 // routes/callback.ts
@@ -228,7 +227,18 @@ export const handler: Handlers<any, State> = {
 
 Once the `callback.ts` handler function completes, the app user has been
 authenticated and the application has all the user information it needed from
-Github and the what it needs to secure the `/secured` route.
+Github and what it needs to secure the `/secured` route.
+
+**The refresh token**
+
+Another concept in the OAuth flow is the refresh token. This token is sent back
+with the access token and used when the access token expires to get a new access
+token.
+
+In the case of Github, the access token expires after one year, so the refresh
+scenario would be very difficult to test. You would probably want your user to
+go through the OAuth flow again at that point too. In the `deno-oauth2-client`
+lib the `RefreshTokenGrant.refresh()` method is used for token refresh.
 
 **Storing the session id in a cookie**(_??Is this needed??_)
 
@@ -240,14 +250,8 @@ also used to look up a user and get his/her data returned from Github to be
 displayed on the `/secured` page.
 
 The `Logout` link is shown in the page header after a user logs in. Clicking on
-it deletes the 'session' browser cookie.
-
-.....................................
-
-- **TODO:** Refresh token
-  - Refresh token is used to refresh an expired access token
-  - Call `RefreshTokenGrant.refresh()` in `deno-oauth2-client` lib to refresh
-  - Difficult to test in Github because tokens take 1 year to expire
+it deletes the 'session' browser cookie via the `routes/logout.ts` handler
+function.
 
 ## Using Deno KV to store session and user data
 
@@ -263,7 +267,6 @@ The basic KV CRUD operations utilize the `set()` (create and update), `get()`
 
 KV is used here to temporarily store session data during the OAuth flow between
 the call to the authorization URL and the call to get the access token.
-**TODO:** more
 
 KV is also used here to store user information obtained from Github in various
 ways to facilitate performant queries. They include:
@@ -273,9 +276,10 @@ ways to facilitate performant queries. They include:
 - `users_by_session` - store users by the session id
 
 A KV [Key](https://deno.com/manual@v1.34.0/runtime/kv/key_space#keys) is an
-array sequence with parts. In our case, we have a name part and an id part so
-that in the key `["users", "1 ]`, "users" would be the name and "1" would be the
-id.
+array sequence with members called parts. In our case, we have a name part and
+an id part so that in the key `["users", "1 ]`, "users" would be the name and
+"1" would be the id. Retrieving a user from KV would involved using that key as
+the `get()` call argument.
 
 In each case, the KV value is a `User` object defined by this interface:
 
@@ -292,6 +296,15 @@ export interface User {
 
 The email value may be null since the Github allows users to set their email
 address as private.
+
+We should note here that we do not use the `users` KV store. If you were to add
+an admin interface to the app you would probably display a list of users. In
+that case you'd add a `role` field to the `User` object to make sure that
+ordinary users (`role: user`) could not become an admin (`role: admin`).
+Following the lead of many tutorials, we'll leave this as an exercise for our
+readers.
+
+**Logout**
 
 When a user logs out and logs in again a new record is added to the the
 `users_by_session` KV store. When a user goes to the `/secured` route, the
@@ -312,7 +325,15 @@ use a non-Github provider, the application needs to be registered with the
 provider by a different mechanism and different argument values will be used to
 call `OAuth2Client` including different values for the default `scope`.
 
-TODO: XXXXXXXXXXXXXXXXXXXXXXXXXXX
+While Deno KV is currently not supported in Deno Deploy, you can deploy a KV app
+using Docker. See the [README.md in the SaaSKit Github repository]() for
+directions on how to do that.
+
+---
+
+_The author would like to thank Asher Gomez of the Deno team for his help
+understanding OAuth and KV. You'll notice that much of the code in the demo app
+is adapted from the SaaSKit repository where Asher leads its development._
 
 ---
 
