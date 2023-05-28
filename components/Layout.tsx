@@ -32,7 +32,7 @@ export default function Layout(props: LayoutProps) {
           <a href="/" class="ml-4">Home</a>
         </nav>
       </header>
-      <main>
+      <main class="ml-5 mr-5">
         {props.children}
       </main>
       <footer class="flex justify-center bg-gray-200 p-5">
