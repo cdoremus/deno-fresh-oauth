@@ -270,6 +270,7 @@ the `get()` call argument.
 In each case, the KV value is a `User` object defined by this interface:
 
 ```ts
+// utils/db.ts
 export interface User {
   id: string;
   name: string;
@@ -283,12 +284,50 @@ export interface User {
 The email value may be null since the Github allows users to set their email
 address as private.
 
-We should note here that we do not use the `users` KV store. If you were to add
-an admin interface to the app you would probably display a list of users. In
-that case you'd add a `role` field to the `User` object to make sure that
-ordinary users (`role: user`) could not become an admin (`role: admin`).
-Following the lead of many tutorials, we'll leave this as an exercise for our
-readers.
+When there are multiple ways to display the same records as we have with `User`
+data here, they are termed
+[secondary indexes](https://deno.com/manual@v1.34.0/runtime/kv/secondary_indexes).
+When secondary indexes are used, you need to make sure that they are
+synchronized within a transaction. The `Kv.atomic()` method is used to
+encapsulate a KV transaction. Here's how users are created in our app:
+
+```ts
+// utils/db.ts
+export async function createUser(user: User) {
+  const usersKey = ["users", user.id];
+  const usersByLoginKey = ["users_by_login", user.username];
+  const usersBySessionKey = ["users_by_session", user.sessionId];
+  const res = await kv.atomic()
+    // make sure that the the record exists
+    .check({ key: usersKey, versionstamp: null })
+    .check({ key: usersByLoginKey, versionstamp: null })
+    .check({ key: usersBySessionKey, versionstamp: null })
+    .set(usersKey, user)
+    .set(usersByLoginKey, user)
+    .set(usersBySessionKey, user)
+    .commit();
+  if (!res.ok) {
+    throw res;
+  }
+  return user;
+}
+```
+
+The `atomic` method returns an `AtomicOperation` class instance. The `check()`
+method on that class makes sure that the versionstamp of the record to be
+inserted is the same as the one being added to the data store. In the cases of
+record creation, the versionstamp will be null. For a record update, the
+versionstamp of the current record will be used in the `check()` call.
+
+After checks are completed, calling `set()` inserts the new record into the KV
+store. Finally, you need to call `commit()` to finalize the atomic transaction.
+
+We should note here that we do not use the `users` KV store in the demo app. If
+you were to add an admin interface to the app you would need to display a list
+of users. In that case you'd add a `role` field to the `User` object to make
+sure that ordinary users (`role: user`) could not become an admin
+(`role: admin`). Following the lead of many tutorials, we'll leave this as an
+exercise for our readers.
 
 **Storing the session in a cookie**
 
