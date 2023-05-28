@@ -1,5 +1,3 @@
-# NOTE: This document is a Work-in-Progress
-
 # Using OAuth with a Fresh application
 
 Authentication and authorization is an important application service that
@@ -319,9 +317,11 @@ use a non-Github provider, the application needs to be registered with the
 provider by a different mechanism and different argument values will be used to
 call `OAuth2Client` including different values for the default `scope`.
 
-While Deno KV is currently not supported in Deno Deploy, you can deploy a KV app
-using Docker. See the [README.md in the SaaSKit Github repository]() for
-directions on how to do that.
+While Deno KV is supported in Deno Deploy, it is only available by invitation,
+but you can [request access](https://dash.deno.com/kv). You can also deploy a KV
+app using Docker. See the
+[README.md in the SaaSKit Github repository](https://github.com/denoland/saaskit#using-docker-to-deploy-to-any-vps)
+for directions on how to do that.
 
 ---
 
