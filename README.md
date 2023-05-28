@@ -87,7 +87,7 @@ guard our secured area. The middleware checks that a `sessionId` has been set on
 the Fresh Context state field. That field is set once authentication occurs. In
 Fresh, a `_middleware.ts` file is used to define middleware on a route.
 
-The OAuth flow in the demo app begins when the user clicks on the 'Login' link
+The OAuth flow in the demo app begins when the user clicks on the `Login` link
 invoking the `/login` route (`login.ts`) The route's handler function checks to
 see if a `sessionId`variable has been set. If not, the user is redirected to the
 Github OAuth flow via the`redirectToOAuthLogin()` function.
@@ -122,9 +122,9 @@ export const oauth2Client = new OAuth2Client({
 ```
 
 The `authorizationEndpointUri` and `tokenUri` arguments are used to during the
-OAuth flow. We covered getting the `clientId` and `clientSecret` above. Make
-sure they are in a private place and not pushed to your Github repo by adding
-them to `.gitignore`.
+OAuth flow. The `clientId` and `clientSecret` values come from environmental
+variables the we previously set. Make sure they are in a private place and not
+pushed to your Github repo by adding `.env` to `.gitignore`.
 
 The default `scope` argument determines what private user information our
 application has access to. Scopes can be different for each OAuth provider. For
@@ -135,7 +135,7 @@ The `OAuth2Client` class's `code` field (an `AuthorizationCodeGrant` class
 instance) is used for authorization endpoint (`getAuthorizationUri()`) and
 access token (`getToken()`) calls to the OAuth provider.
 
-As noted above, clicking the 'Login' (`/login`) link leads us back to the
+As noted above, clicking the `Login` (`/login`) link leads us back to the
 `redirectToOAuthLogin()` function in `utils/deno_kv_oauth.ts` called by the
 `login.ts` handler function.
 
@@ -240,19 +240,6 @@ scenario would be very difficult to test. You would probably want your user to
 go through the OAuth flow again at that point too. In the `deno-oauth2-client`
 lib the `RefreshTokenGrant.refresh()` method is used for token refresh.
 
-**Storing the session id in a cookie**(_??Is this needed??_)
-
-Once a user has been authenticated, the session id is stored in a browser cookie
-called 'session' that is 36 characters long. The `setSessionCookie`,
-`getSessionCookie` and `deleteSessionCookie` functions in
-`utils/deno_kv_oauth.ts` is used for cookie manipulation. The browser cookie is
-also used to look up a user and get his/her data returned from Github to be
-displayed on the `/secured` page.
-
-The `Logout` link is shown in the page header after a user logs in. Clicking on
-it deletes the 'session' browser cookie via the `routes/logout.ts` handler
-function.
-
 ## Using Deno KV to store session and user data
 
 Deno KV is a simple key-value store recently added to the Deno runtime and
@@ -304,12 +291,19 @@ ordinary users (`role: user`) could not become an admin (`role: admin`).
 Following the lead of many tutorials, we'll leave this as an exercise for our
 readers.
 
-**Logout**
+**Storing the session in a cookie**
 
-When a user logs out and logs in again a new record is added to the the
-`users_by_session` KV store. When a user goes to the `/secured` route, the
-`user_by_session` store is queried for the user's information. If the User
-record cannot be found, the user is denied access to the route.
+Once a user has been authenticated, the session id is stored in a browser cookie
+called 'session'. The `setSessionCookie`, `getSessionCookie` and
+`deleteSessionCookie` functions in `utils/deno_kv_oauth.ts` is used for cookie
+manipulation. The browser cookie is also used to look up a user and get the user
+data returned from Github to be displayed on the `/secured` page.
+
+The `Logout` link is shown in the page header after a user logs in. Clicking on
+it deletes the 'session' browser cookie via the `routes/logout.ts` handler
+function. The record in the `users_by_session` KV store associated with the
+deleted cookie's session id is also deleted. Both of these actions stops the
+user from accessing to the secured route.
 
 ## Conclusion
 
