@@ -20,7 +20,7 @@ export default function Layout(props: LayoutProps) {
         <div class="flex items-center flex-grow-1">
           <img
             src="/logo.svg"
-            class="w-32 h-32 ml-10"
+            class="w-32 h-32 md:ml-10"
             alt="the fresh logo: a sliced lemon dripping with juice"
           />
           <span class="text-3xl font-bold">
