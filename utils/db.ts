@@ -16,7 +16,6 @@ export async function createUser(user: User) {
   const usersKey = ["users", user.id];
   const usersByLoginKey = ["users_by_login", user.username];
   const usersBySessionKey = ["users_by_session", user.sessionId];
-  console.log("USER CREATED: ", JSON.stringify(user));
   const res = await kv.atomic()
     .check({ key: usersKey, versionstamp: null })
     .check({ key: usersByLoginKey, versionstamp: null })

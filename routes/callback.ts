@@ -28,7 +28,6 @@ async function getUser(accessToken: string): Promise<GitHubUser> {
     throw new Error();
   }
   const user = await response.json();
-  // console.log("GITHUB USER DATA: ", user);
   return user as GitHubUser;
 }
 
