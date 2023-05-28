@@ -43,7 +43,8 @@ Stop the server and clean out the content from `routes/index.tsx` so it can be
 replaced by your app's home page content. We created a `Layout` component to
 wrap each page's content in a header and footer and used Fresh's built-in `Head`
 component to add content to the `<head>` element. The repo holding the code can
-be found at https://github.com/cdoremus/deno-fresh-oauth.
+be found at https://github.com/cdoremus/deno-fresh-oauth. The deployed app can
+be views at https://fresh-oauth.deno.dev.
 
 ## Using OAuth to secure app routes
 

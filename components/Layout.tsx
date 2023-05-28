@@ -36,14 +36,22 @@ export default function Layout(props: LayoutProps) {
         {props.children}
       </main>
       <footer class="flex justify-center bg-gray-200 p-5">
-        <a href="https://fresh.deno.dev">
-          <img
-            width="197"
-            height="37"
-            src="https://fresh.deno.dev/fresh-badge-dark.svg"
-            alt="Made with Fresh"
-          />
-        </a>
+        <div class="flex items-center">
+          <a href="https://fresh.deno.dev" class="mr-2">
+            <img
+              width="197"
+              height="37"
+              src="https://fresh.deno.dev/fresh-badge-dark.svg"
+              alt="Made with Fresh"
+            />
+          </a>
+          <a
+            href="https://github.com/cdoremus/deno-fresh-oauth"
+            class="ml-2 mr-20 text-xl"
+          >
+            Source
+          </a>
+        </div>
       </footer>
     </>
   );
