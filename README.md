@@ -139,6 +139,7 @@ As noted above, clicking the `Login` (`/login`) link leads us back to the
 `login.ts` handler function.
 
 ```ts
+// utils/deno_kv_oauth.ts
 export async function redirectToOAuthLogin(oauth2Client: OAuth2Client) {
   const state = crypto.randomUUID(); // random state
   const { uri, codeVerifier } = await oauth2Client.code.getAuthorizationUri({
@@ -170,6 +171,7 @@ Github OAuth callback URL to be that route. Here is an annotated look at what
 goes on inside of `getAccessToken()`:
 
 ```ts
+// utils/deno_kv_oauth.ts
 export async function getAccessToken(
   request: Request,
   oauth2Client: OAuth2Client,
@@ -231,7 +233,7 @@ Github and what it needs to secure the `/secured` route.
 **The refresh token**
 
 Another concept in the OAuth flow is the refresh token. This token is sent back
-with the access token and used when the access token expires to get a new access
+with the access token and used when that token expires to get a new access
 token.
 
 In the case of Github, the access token expires after one year, so the refresh
@@ -242,17 +244,20 @@ lib the `RefreshTokenGrant.refresh()` method is used for token refresh.
 ## Using Deno KV to store session and user data
 
 Deno KV is a simple key-value store recently added to the Deno runtime and
-coming soon to Deno Deploy. Currently, the API has been marked _unstable_, so be
-aware that some of the code in this article and in the associated demo app may
-change in the future.
+available now by invitation on Deno Deploy. Currently, the API has been marked
+_unstable_, so be aware that some of the code in this article and in the
+associated demo app may change in the future.
 
 The basic KV CRUD operations utilize the `set()` (create and update), `get()`
 (read) and `delete` (delete) functions on the `Deno.Kv` class (see the
 [Deno.KV API docs](https://deno.land/api@v1.34.0?unstable=&s=Deno.Kv) and the
 [KV section in the Deno Manual](https://deno.com/manual@v1.34.0/runtime/kv)).
+All KV records are given a `versionstamp` property which is a unique string
+token assigned at creation and reassigned on update.
 
-KV is used here to temporarily store session data during the OAuth flow between
-the call to the authorization URL and the call to get the access token.
+KV is used here to temporarily store session data (state and code verifier)
+during the OAuth flow between the call to the authorization URL and the call to
+get the access token.
 
 KV is also used here to store user information obtained from Github in various
 ways to facilitate performant queries. They include:
@@ -261,11 +266,11 @@ ways to facilitate performant queries. They include:
 - `users_by_login` - store users by the Github username
 - `users_by_session` - store users by the session id
 
-A KV [Key](https://deno.com/manual@v1.34.0/runtime/kv/key_space#keys) is an
+A Deno KV [Key](https://deno.com/manual@v1.34.0/runtime/kv/key_space#keys) is an
 array sequence with members called parts. In our case, we have a name part and
-an id part so that in the key `["users", "1 ]`, "users" would be the name and
-"1" would be the id. Retrieving a user from KV would involved using that key as
-the `get()` call argument.
+an id part so that in the key `["users", "1" ]`, "users" would be the name and
+"1" would be the id. Retrieving a user from KV -- via an ID in this case --
+would involved using that key as the `get()` call argument.
 
 In each case, the KV value is a `User` object defined by this interface:
 
@@ -287,9 +292,9 @@ address as private.
 When there are multiple ways to display the same records as we have with `User`
 data here, they are termed
 [secondary indexes](https://deno.com/manual@v1.34.0/runtime/kv/secondary_indexes).
-When secondary indexes are used, you need to make sure that they are
-synchronized within a transaction. The `Kv.atomic()` method is used to
-encapsulate a KV transaction. Here's how users are created in our app:
+When secondary indexes are used, you need to make sure that operations on each
+index are synchronized within a transaction. The `Deno.Kv.atomic()` method is
+used to encapsulate a KV transaction. Here's how users are created in our app:
 
 ```ts
 // utils/db.ts
@@ -298,7 +303,6 @@ export async function createUser(user: User) {
   const usersByLoginKey = ["users_by_login", user.username];
   const usersBySessionKey = ["users_by_session", user.sessionId];
   const res = await kv.atomic()
-    // make sure that the the record exists
     .check({ key: usersKey, versionstamp: null })
     .check({ key: usersByLoginKey, versionstamp: null })
     .check({ key: usersBySessionKey, versionstamp: null })
@@ -314,10 +318,13 @@ export async function createUser(user: User) {
 ```
 
 The `atomic` method returns an `AtomicOperation` class instance. The `check()`
-method on that class makes sure that the versionstamp of the record to be
-inserted is the same as the one being added to the data store. In the cases of
-record creation, the versionstamp will be null. For a record update, the
-versionstamp of the current record will be used in the `check()` call.
+method on that class makes sure that the `versionstamp` of the record to be
+inserted is the same as the one being added to the data store. In the case of
+record creation, the `versionstamp` will be null. For a record update, the
+`versionstamp` of the current record will be used in the `check()` call. Record
+deletions also need to be done inside an atomic transaction. See the
+[KV transaction section in the Deno Manual](https://deno.com/manual@v1.34.0/runtime/kv/transactions)
+for more details.
 
 After checks are completed, calling `set()` inserts the new record into the KV
 store. Finally, you need to call `commit()` to finalize the atomic transaction.
@@ -341,15 +348,16 @@ The `Logout` link is shown in the page header after a user logs in. Clicking on
 it deletes the 'session' browser cookie via the `routes/logout.ts` handler
 function. The record in the `users_by_session` KV store associated with the
 deleted cookie's session id is also deleted. Both of these actions stops the
-user from accessing to the secured route.
+user from accessing the secured route.
 
 ## Conclusion
 
 This article demonstrated how to use an OAuth provider to easily add add
 authentication and authorization to your Fresh application using a secure,
 battle-tested protocol. While we provide an example with Fresh here, there is no
-reason why you could not use OAuth to secure application build with Oak, Aleph,
-Ultra or any other Deno web framework.
+reason why you could not use OAuth to secure application build with
+[Oak](https://deno.land/x/oak), [Aleph](https://deno.land/x/aleph), [Ultra]
+(https://deno.land/x/ultra) or any other Deno web framework.
 
 Similarly, another OAuth provider can be used instead of Github or you can allow
 the user to select from a number of different providers. If the user decides to
@@ -357,9 +365,10 @@ use a non-Github provider, the application needs to be registered with the
 provider by a different mechanism and different argument values will be used to
 call `OAuth2Client` including different values for the default `scope`.
 
-While Deno KV is supported in Deno Deploy, it is only available by invitation,
-but you can [request access](https://dash.deno.com/kv). You can also deploy a KV
-app using Docker. See the
+We also explored using Deno KV here. While KV is supported in Deno Deploy, it is
+only available by invitation, but you can
+[request access](https://dash.deno.com/kv). Hopefully, general availability will
+occur soon. You can also deploy a Fresh KV app using Docker. See the
 [README.md in the SaaSKit Github repository](https://github.com/denoland/saaskit#using-docker-to-deploy-to-any-vps)
 for directions on how to do that.
 
@@ -367,26 +376,26 @@ for directions on how to do that.
 
 _The author would like to thank Asher Gomez of the Deno team for his help
 understanding OAuth and KV. You'll notice that much of the code in the demo app
-is adapted from the SaaSKit repository where Asher leads its development._
+is adapted from the
+[SaaSKit Github repository](https://github.com/denoland/saaskit) where Asher
+leads its development._
 
 ---
 
 **Appendix: Development and Troubleshooting Tips**
 
 - A debugger can be your friend here because there's a lot going on during the
-  OAuth flow. To debug the demo application in Chrome, run the `debug` task,
-  browse to `chrome://inspect` and click on the `inspect` link. The Dev Tools
-  `sources` tab will come up where you can set breakpoints, step through the
-  application code and view object values. If no source comes up in the tree
-  view, you may need to click on 'add folder to workspace' and manually add your
-  workspace folder.
+  OAuth flow. To do so,
+  [setup Chrome Devtools for debugging](https://deno.com/manual@v1.0.0/tools/debugger#chrome-devtools).
+  We have provided a `debug` task in `deno.json` that allows you to run the app
+  in debug mode.
 - To retest OAuth flow, revoke app access by going to Settings -> Applications
   -> Authorized OAuth Apps. Find the app on the list and select Revoke from the
   menu. You also need to delete the 'session' cookie in the browser Dev Tool's
   Applications tab. When you access the app again, you will be forced into the
   Github OAuth flow again.
-- To clear your KV database, run the following snippet in the Deno repl using
-  the `--unstable` flag:
+- To clear your local KV database, run the following snippet in the Deno repl
+  using the `--unstable` flag:
 
 ```ts
 const kv = await Deno.openKv();
